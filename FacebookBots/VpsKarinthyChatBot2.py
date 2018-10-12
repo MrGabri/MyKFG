@@ -21,18 +21,14 @@ TimeTable = []
 
 url = "https://admin.karinthy.hu/api/substitutions?day="
 
-TTPath = "../Datas/"
+HWPath = "../Datas/"
+
 
 email, password = LoadCredentials.LoadCreds()
 client = Client(email, password)
 
-
-#Setup SQL
-connection = sqlite3.connect("homework.db")
-cursor = connection.cursor()
-
 for i in range(0, Weekdays.__len__()):
-	with open (TTPath + Weekdays[i] + ".csv", 'rb') as f:
+	with open ("../Datas/Monday.csv", 'rb') as f:
             reader = csv.reader(f)
             TimeTable.append(map(tuple, reader))
 

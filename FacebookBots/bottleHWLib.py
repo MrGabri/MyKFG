@@ -8,9 +8,9 @@ hashids = Hashids()
 
 
 #Path vars
-HWPath = "./HomeWorks/"
-TTPath = "./Datas/"
-DBFile = "./homework.db"
+HWPath = "../HomeWorks/"
+TTPath = "../Datas/"
+DBFile = "../homework.db"
 
 #List vars
 Weekdays = ["Monday","Tuesday","Wednesday","Thursday","Friday"]

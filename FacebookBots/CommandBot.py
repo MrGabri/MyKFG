@@ -4,10 +4,12 @@ from fbchat.models import *
 import time
 import json
 import LoadCredentials
+import csv
 
 email, password = LoadCredentials.LoadCreds()
 HWPath = "../HomeWorks/"
 homeworks = []
+
 
 class Msg():
     def __init__(self, author_id, message_object, thread_id, thread_type):
@@ -25,7 +27,7 @@ class CustomClient(Client):
 
 
 def ReadHWJson(msgData):
-    with open("./HomeWorks/Homeworks.json") as infile:
+    with open(HWPath + "Homeworks.json") as infile:
         result = json.load(infile)
     for hw in result:
         print(hw)
