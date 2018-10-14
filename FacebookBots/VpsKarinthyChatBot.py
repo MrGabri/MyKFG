@@ -28,7 +28,7 @@ email, password = LoadCredentials.LoadCreds()
 client = Client(email, password)
 
 for i in range(0, Weekdays.__len__()):
-	with open ("../Datas/Monday.csv", 'rb') as f:
+	with open (HWPath + Weekdays[i] + ".csv", 'rb') as f:
             reader = csv.reader(f)
             TimeTable.append(map(tuple, reader))
 

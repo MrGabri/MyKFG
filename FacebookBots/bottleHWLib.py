@@ -128,7 +128,7 @@ def saveHW(_lessons, _hw, _customDate):
         json.dump(feed, outfile)
     
 def GetHW():
-    with open("./HomeWorks/Homeworks.json") as infile:
+    with open(HWPath + "Homeworks.json") as infile:
         try: 
             result = json.load(infile)
         except:
