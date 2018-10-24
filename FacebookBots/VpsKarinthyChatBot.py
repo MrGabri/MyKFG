@@ -13,60 +13,38 @@ import sqlite3
 import bottleHWLib as HWLib
 import LoadCredentials
 
-thread_id = '1571931486208120'
+
+
+#thread_id = '1571931486208120' #Main mode
+thread_id = '1599731243462067'  #Dev mode
 thread_type = ThreadType.GROUP
 
 Weekdays = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
-TimeTable = []
 
-url = "https://admin.karinthy.hu/api/substitutions?day="
+url = "https://admin.karinthy.hu/api/substitutions?day={}"
 
-HWPath = "../Datas/"
+TTPath = "../Datas/"
 
 
 email, password = LoadCredentials.LoadCreds()
-client = Client(email, password)
+client = Client(email, password) #Login to facebook
 
-for i in range(0, Weekdays.__len__()):
-	with open (HWPath + Weekdays[i] + ".csv", 'rb') as f:
-            reader = csv.reader(f)
-            TimeTable.append(map(tuple, reader))
+with open(TTPath + "schedule.json") as ScheduleFile: #Load schedule file
+    Schedule = json.load(ScheduleFile)
 
 
-
-def GetSubstitutions(_url, day, _class, _lesson, _subject):
-    if day.month < 10:
-        _month = "0" + str(day.month)
-    else:
-        _month = day.month
-    if day.day < 10:
-        _day = "0" + str(day.day)
-    else:
-        _day = day.day
-    url = _url + str(day.year) + "-" + str(_month) + "-" + str(_day)
-    r = requests.get(url)
+def GetSubstitutions(day, _class, _lesson, _subject):
+    r = requests.get(url.format(date.today().isoformat()))
     json_file = r.content
     json_file = json_file.decode('utf8').replace("'", '"')
     data = json.loads(json_file)
     if data != None:
         for index, item in enumerate(data['substitutions']):
             if item['lesson'] == _lesson:
-                if item['class'] == _class:
-                    if item['subject'] == _subject:
+                if item['class'] == _class or item['class'] == '9.ABEC':
+                    if item['subject'].lower() == _subject.lower():
                         return item
-        return False
-
-
-
-def setMessage(_dayless, _subs):
-    if _subs != False:
-        if _subs['comment'] == "hazamegy" or _subs['comment'] == "könyvtár":
-            msg = "A következő óra helyettesítés miatt elmarad..., comment:" + _subs['comment']
-        else:
-            msg = ("Next lesson is {} in room{} with{} cause of substitutions! (Comment: {})".format(_dayless[0], _subs['room'], _subs['substituting_teacher'], _subs['comment'])).encode('utf-8')
-    else:
-        msg = "Next lesson is {} in room{} with{}.".format(DayLess[0], DayLess[1], DayLess[2])
-    return msg
+    return False
 
 
 def checkHWValidDate():
@@ -78,52 +56,53 @@ def checkHWValidDate():
     return None
 
 
+msgAlap = "{} a {} teremben {} -val/vel!"
+msgElobb = "{} a {} teremben {} -val/vel ami {} percel elobb kezdodik!"
+msgKesobb = "{} a {} teremben {} -val/vel ami {} percel kesobb kezdodik!"
+msgElmarad = "{}, helyettesites miatt elmarad...(Comment: {})"
+msgHelyettesites = "{}, helyettesites miatt a {} teremben {} -val/vel! (Comment: {} )"
+
+def setMessage(_name, _lesson, _subs):
+    if _subs == False:
+        if not _lesson["start"] == "":
+            if "+" in _lesson["start"]:
+                msg = (msgKesobb.format(_name, _lesson["room"],_lesson["teacher"], _lesson["start"])).encode('utf-8')
+            if "-" in _lesson["start"]:
+                msg = (msgElobb.format(_name, _lesson["room"],_lesson["teacher"], _lesson["start"])).encode('utf-8')
+        else:
+            msg = (msgAlap.format(_name, _lesson["room"],_lesson["teacher"])).encode('utf-8')
+
+    elif _subs['comment'] == "hazamegy" or _subs['comment'] == "könyvtár":
+        msg = (msgElmarad.format(_name, _subs['comment'])).encode('utf-8')
+    else:
+        msg = (msgHelyettesites.format(_name, _subs["room"] , _subs["substitutingTeacher"], _subs["comment"] )).encode('utf-8')
+    return msg
+
+
+def printLesson(now):
+    for name, data in Schedule[now.weekday()][now.hour - 6].items(): # iterate through next lesson(s)
+        subs = GetSubstitutions(now, '9.E', now.hour - 6, name) # get substitutions for next lesson
+        msg = setMessage(name, data, subs) # get motd
+        client.send(Message(text="A következö ora:"), thread_id=thread_id, thread_type=thread_type)
+        print(msg)
+        client.send(Message(text=msg), thread_id=thread_id, thread_type=thread_type)
+
 
 while True:
-    f = date.today()
-    day = calendar.day_name[f.weekday()]
-    if day != "Saturday" or day != "Sunday":
-        now = datetime.now()
-        print("H:" + str(now.hour))
-        if 6 < now.hour < 15:
-            print(now.minute)
-            if now.minute == 45:
-                less = now.hour
-                less -= 7
-                print(TimeTable)
-                dayN = Weekdays.index(day)
-                print(dayN)
-                print(less)
-                try:
-                    DayLess = TimeTable[dayN][less]
-                    subs = GetSubstitutions(url, now, '9.E', less + 1, DayLess[0])
-                    try:
-                        _less = less - 1
-                        if DayLess[0] == TimeTable[dayN][_less]:
-                            pass
-                        else:
-                            msg = setMessage(DayLess, subs)
-                            print(msg)
-                            messageId = client.send(Message(text=str(msg)), thread_id=thread_id, thread_type=thread_type)
-                            client.reactToMessage(messageId, MessageReaction.YES)
-                    except:
-                        msg = setMessage(DayLess, subs)
-                        print(msg)
-                        client.send(Message(text=msg), thread_id=thread_id, thread_type=thread_type)
-                        client.reactToMessage(messageId, MessageReaction.YES)
-                except:
-                    pass
-                sleep(60)
-            else:
-                sleep(60)
-        elif now.hour <= 7:
+    now = datetime.now()
+    if 5 <= now.weekday():
+        print("sleep for 6h")
+        sleep(14400)
+    else:
+        if now.hour <= 7:
             print("sleep for 15m")
             sleep(900)
-        elif now.hour >= 15:
+        elif now.hour >= 14:
             checkHWValidDate()
             print("sleep for 1h")
             sleep(3600)
-    else:
-        print("sleep for 6h")
-        sleep(14400)
+        else:
+            if now.minute == 45:
+                printLesson(now)
+            sleep(60)
 client.logout()

@@ -26,32 +26,26 @@ class HomeWork:
     self.lesson = lesson
     self.id = id
 
-for i in range(0, Weekdays.__len__()): #Load timetable from .csv files
-        with open (TTPath + Weekdays[i] + ".csv", 'rb') as f:
-            reader = csv.reader(f)
-            TimeTable.append(map(tuple, reader))
+with open(TTPath + "schedule.json") as ScheduleFile:
+    Schedule = json.load(ScheduleFile)
+
 
 def GetLessons():
     todayLessons = []
     f = date.today()
     day = calendar.day_name[f.weekday()]
-    try:
-        dayIndex = Weekdays.index(day)
-    except:
-        dayIndex = 0
-    for i in range(list(TimeTable[dayIndex]).__len__()):
-        _less = str(TimeTable[dayIndex][i][0])
-        if _less in todayLessons:
-            pass
-        else:
-            if "Masodik" in _less:
-                todayLessons.append("Orosz")
-                todayLessons.append("Német1")
-                todayLessons.append("Német2")
-                todayLessons.append("Spanyol1")
-                todayLessons.append("Francia")
+    for i in range(1, 8):
+        try:
+            if Schedule[day][str(i)]["name"] in todayLessons:
+                pass
             else:
-                todayLessons.append(_less)
+                todayLessons.append(Schedule[day][str(i)]["name"])
+        except KeyError:
+            for a in range(1, 7):
+                if Schedule[day][str(i) + "." + str(a)]["name"] in todayLessons:
+                    pass
+                else:
+                    todayLessons.append(Schedule[day][str(i)]["name"])
     return todayLessons
 
 def getNewHWID():
